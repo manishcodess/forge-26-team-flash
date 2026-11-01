@@ -6,8 +6,8 @@ import { dbStore } from './db/index.js';
 async function bootstrap() {
   try {
     logger.info('========================================================');
-    logger.info('   ⚡ ResQFlow AI — Climate Emergency Response Backend    ');
-    logger.info('   Team Flash — Bihar Flood Relief Logistics Center      ');
+    logger.info('   ⚡ ResQ — Disaster Relief & Logistics Operations      ');
+    logger.info('   Team Flash — GenAI Buildathon 2026                   ');
     logger.info('========================================================');
 
     // Initialize database (Postgres or resilient pre-seeded fallback)

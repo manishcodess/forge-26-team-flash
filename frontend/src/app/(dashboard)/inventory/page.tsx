@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Boxes,
   Plus,
@@ -18,6 +18,7 @@ import {
 import { mockInventory, mockWarehouses, mockAffectedLocations } from '@/lib/mockData';
 import { formatNumber } from '@/lib/utils';
 import { InventoryItem, ResourceCategory } from '@/types';
+import { api } from '@/lib/api';
 
 export default function InventoryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -25,6 +26,23 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showAddStockModal, setShowAddStockModal] = useState<boolean>(false);
   const [items, setItems] = useState<InventoryItem[]>(mockInventory);
+
+  useEffect(() => {
+    let isMounted = true;
+    api
+      .getInventory()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setItems(data);
+        }
+      })
+      .catch(() => {
+        // Fallback to mock
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Shortage calculations vs affected village demands
   const totalDemandFood = mockAffectedLocations.reduce((acc, l) => acc + l.requiredFoodPackets, 0);
@@ -58,10 +76,10 @@ export default function InventoryPage() {
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Boxes className="w-5 h-5 text-emerald-400" />
-            <span>Emergency Relief Inventory & Stock Ledger</span>
+            <span>Relief Stock Inventory</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            ACID transaction-controlled inventory tracking across Bihar staging hubs with automated reorder triggers.
+            Monitor available supplies, reserved allocations, and reorder levels across Bihar hubs.
           </p>
         </div>
         <button

@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { api, HealthResponse } from '@/lib/api';
 import {
-  CloudRain,
-  Flame,
   Bell,
-  RefreshCw,
-  Cpu,
-  Layers,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  Clock
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -17,11 +16,25 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-export function Header({ title = 'Emergency Operations Command', subtitle = 'State Disaster Management Authority (SDMA) • Bihar Grid' }: HeaderProps) {
+export function Header({
+  title = 'Disaster Relief Operations',
+  subtitle = 'Resource allocation & emergency logistics',
+}: HeaderProps) {
   const [timeStr, setTimeStr] = useState<string>('');
-  const [isSimulation, setIsSimulation] = useState<boolean>(true);
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // Check API health status
+    let isMounted = true;
+    api
+      .checkHealth()
+      .then(() => {
+        if (isMounted) setApiOnline(true);
+      })
+      .catch(() => {
+        if (isMounted) setApiOnline(false);
+      });
+
     const updateTime = () => {
       const now = new Date();
       setTimeStr(
@@ -30,66 +43,62 @@ export function Header({ title = 'Emergency Operations Command', subtitle = 'Sta
           minute: '2-digit',
           second: '2-digit',
           hour12: false,
-          timeZone: 'Asia/Kolkata'
+          timeZone: 'Asia/Kolkata',
         }) + ' IST'
       );
     };
+
     updateTime();
     const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (
     <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-6 py-3.5">
       <div className="flex items-center justify-between gap-4">
-        {/* Title & Division */}
+        {/* Title & Section */}
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-white tracking-tight">{title}</h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              STATION-01
-            </span>
-          </div>
+          <h1 className="text-base font-bold text-white tracking-tight">{title}</h1>
           <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
         </div>
 
-        {/* Tactical Telemetry & Simulation Controls */}
+        {/* Telemetry & Status Badges */}
         <div className="flex items-center gap-3">
-          {/* Weather Widget */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
-            <CloudRain className="w-4 h-4 text-cyan-400" />
-            <div>
-              <span className="text-slate-400">Open-Meteo Telemetry: </span>
-              <span className="text-cyan-300 font-semibold">142.5mm / 24h</span>
-              <span className="text-slate-400 text-[10px] ml-1">(Kosi River Basin)</span>
-            </div>
+          {/* API Connectivity Status */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+              apiOnline === true
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                : apiOnline === false
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
+                : 'bg-slate-900 text-slate-400 border-slate-800'
+            }`}
+            title={
+              apiOnline === true
+                ? 'Connected to ResQ Backend API'
+                : 'Using Local In-Memory Fallback'
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                apiOnline === true
+                  ? 'bg-emerald-400'
+                  : apiOnline === false
+                  ? 'bg-amber-400'
+                  : 'bg-slate-500 animate-pulse'
+              }`}
+            />
+            <span>{apiOnline === true ? 'API Connected' : apiOnline === false ? 'Local Demo Mode' : 'Connecting...'}</span>
           </div>
 
-          {/* Simulation vs Real Toggle Badge */}
-          <button
-            onClick={() => setIsSimulation(!isSimulation)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-              isSimulation
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
-            }`}
-            title="Toggle between live telemetry and simulated emergency scenario"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{isSimulation ? 'SIMULATION MODE (Bihar 2026)' : 'LIVE TELEMETRY'}</span>
-          </button>
-
-          {/* Live System Time */}
+          {/* Time Display */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span>{timeStr || '12:00:00 IST'}</span>
           </div>
-
-          {/* Alert Notification Button */}
-          <button className="relative p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
-          </button>
         </div>
       </div>
     </header>

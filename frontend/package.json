@@ -1,6 +1,7 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "resq-frontend",
+  "version": "1.0.0",
+  "description": "ResQ — Disaster Relief & Resource Allocation Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",

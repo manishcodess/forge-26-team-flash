@@ -163,19 +163,19 @@ export default function TacticalMap({
     <div className="relative w-full h-[580px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
       <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-      {/* Floating Tactical GIS Legend */}
+      {/* Floating Map Legend */}
       <div className="absolute bottom-4 left-4 z-20 glass-panel p-3 rounded-lg text-xs space-y-2 border border-slate-700/80 max-w-xs shadow-xl">
         <div className="font-bold text-slate-200 uppercase text-[10px] tracking-wider border-b border-slate-700 pb-1">
-          Tactical Map Legend
+          Map Legend
         </div>
         <div className="grid grid-cols-2 gap-2 text-[11px]">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-blue-600 border border-white"></span>
-            <span className="text-slate-300">Relief Depot Hub</span>
+            <span className="text-slate-300">Relief Hub</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-rose-500 border border-white"></span>
-            <span className="text-slate-300">Critical Village</span>
+            <span className="text-slate-300">Critical Urgency</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-amber-500 border border-white"></span>
@@ -187,11 +187,11 @@ export default function TacticalMap({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-4 h-0.5 bg-cyan-400"></span>
-            <span className="text-slate-300">Safe Road Corridor</span>
+            <span className="text-slate-300">Safe Route</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-4 h-0.5 bg-rose-500 border-t border-dashed"></span>
-            <span className="text-rose-400 font-semibold">Flood Hazard Route</span>
+            <span className="text-rose-400 font-semibold">Flood Alert Route</span>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 {
-  "name": "resqflow-backend",
+  "name": "resq-backend",
   "version": "1.0.0",
-  "description": "Autonomous Climate Emergency Response & Relief Logistics Orchestration Backend",
+  "description": "ResQ — Disaster Relief & Resource Allocation Backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
