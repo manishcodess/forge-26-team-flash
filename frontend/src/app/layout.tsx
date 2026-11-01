@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ResQFlow AI — Autonomous Climate Emergency Response & Relief Logistics",
-  description: "Autonomous disaster response platform for flood monitoring, deterministic inventory allocation, and verified route planning in Bihar, India.",
+  title: "ResQ — Disaster Relief & Resource Allocation Platform",
+  description: "Disaster response and logistics platform optimizing emergency relief supply allocation, flood hazard tracking, and dispatch coordination.",
 };
 
 export default function RootLayout({

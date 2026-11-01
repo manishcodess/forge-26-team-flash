@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -9,15 +9,35 @@ import {
   Ship,
   Phone,
   CheckCircle2,
-  AlertCircle,
   Package,
   Layers,
   ArrowRight
 } from 'lucide-react';
 import { mockWarehouses, mockInventory } from '@/lib/mockData';
 import { formatNumber } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { Warehouse, InventoryItem } from '@/types';
 
 export default function WarehousesPage() {
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(mockWarehouses);
+  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      api.getWarehouses().catch(() => mockWarehouses),
+      api.getInventory().catch(() => mockInventory),
+    ]).then(([whData, invData]) => {
+      if (!isMounted) return;
+      if (Array.isArray(whData) && whData.length > 0) setWarehouses(whData);
+      if (Array.isArray(invData) && invData.length > 0) setInventory(invData);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -25,10 +45,10 @@ export default function WarehousesPage() {
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-blue-400" />
-            <span>Relief Logistics Hubs & Staging Warehouses</span>
+            <span>Relief Logistics Hubs & Warehouses</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Operational status, square footage capacity, and assigned heavy transport assets across Bihar relief centers.
+            Operational status, capacity utilization, and assigned vehicle fleets across staging hubs.
           </p>
         </div>
         <Link
@@ -36,14 +56,14 @@ export default function WarehousesPage() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all self-start sm:self-auto"
         >
           <Package className="w-4 h-4" />
-          <span>Manage Stock Ledger</span>
+          <span>View Stock Inventory</span>
         </Link>
       </div>
 
       {/* Warehouse Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {mockWarehouses.map((wh) => {
-          const warehouseItems = mockInventory.filter((item) => item.warehouseId === wh.id);
+        {warehouses.map((wh) => {
+          const warehouseItems = inventory.filter((item) => item.warehouseId === wh.id);
           const totalStock = warehouseItems.reduce((acc, i) => acc + i.quantityAvailable, 0);
 
           return (
@@ -98,31 +118,31 @@ export default function WarehousesPage() {
                   <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-cyan-400" />
                     <div>
-                      <div className="font-bold text-white">{wh.availableVehicles}</div>
-                      <div className="text-[10px] text-slate-400">4x4 Trucks</div>
+                      <div className="font-bold text-white">{wh.availableVehicles} Trucks</div>
+                      <div className="text-[10px] text-slate-400">Heavy 4x4 Fleet</div>
                     </div>
                   </div>
                   <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-2">
-                    <Ship className="w-4 h-4 text-emerald-400" />
+                    <Ship className="w-4 h-4 text-blue-400" />
                     <div>
-                      <div className="font-bold text-white">{wh.availableRescueBoats}</div>
-                      <div className="text-[10px] text-slate-400">Rescue Boats</div>
+                      <div className="font-bold text-white">{wh.availableRescueBoats} Boats</div>
+                      <div className="text-[10px] text-slate-400">Rescue Craft</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Card Footer Actions */}
-              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-slate-500" />
-                  {wh.contactPhone}
+              {/* Footer Phone and Inventory Link */}
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <Phone className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{wh.contactPhone}</span>
                 </span>
                 <Link
-                  href="/inventory"
+                  href={`/inventory?warehouseId=${wh.id}`}
                   className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1"
                 >
-                  <span>View Stock</span>
+                  <span>Stock</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

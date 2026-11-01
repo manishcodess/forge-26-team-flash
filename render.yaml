@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: resq-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CLIENT_URL
+        value: '*'
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPEN_METEO_BASE_URL
+        value: https://api.open-meteo.com/v1
+      - key: OSRM_BASE_URL
+        value: https://router.project-osrm.org
+

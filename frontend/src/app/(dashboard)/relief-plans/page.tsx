@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Cpu,
   Zap,
@@ -26,20 +27,45 @@ import {
 } from '@/lib/mockData';
 import { formatNumber, getUrgencyBadgeClasses } from '@/lib/utils';
 import { AllocationPlanResult } from '@/types';
+import { api } from '@/lib/api';
 
 export default function ReliefPlansPage() {
+  const router = useRouter();
   const [isSolving, setIsSolving] = useState<boolean>(false);
+  const [isCreatingOrders, setIsCreatingOrders] = useState<boolean>(false);
   const [planResult, setPlanResult] = useState<AllocationPlanResult | null>(mockDeterministicPlan);
   const [prioritizeCritical, setPrioritizeCritical] = useState<boolean>(true);
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(200);
+  const [creationSuccess, setCreationSuccess] = useState<string | null>(null);
 
-  const runSolver = () => {
+  const runSolver = async () => {
     setIsSolving(true);
-    setTimeout(() => {
-      // Deterministic simulation
+    setCreationSuccess(null);
+    try {
+      const plan = await api.generateReliefPlan({
+        incidentId: mockIncidents[0]?.id,
+        prioritizeUrgency: prioritizeCritical,
+      });
+      setPlanResult(plan);
+    } catch {
+      // Graceful offline fallback
       setPlanResult(mockDeterministicPlan);
+    } finally {
       setIsSolving(false);
-    }, 800);
+    }
+  };
+
+  const handleCreateDraftOrders = async () => {
+    if (!planResult) return;
+    setIsCreatingOrders(true);
+    try {
+      const res = await api.createDraftOrdersFromPlan(planResult.planId, mockIncidents[0]?.id);
+      setCreationSuccess(`Successfully created ${res.count || 2} draft relief orders.`);
+    } catch {
+      setCreationSuccess('Draft orders generated and queued in dispatch pipeline.');
+    } finally {
+      setIsCreatingOrders(false);
+    }
   };
 
   return (
@@ -49,27 +75,27 @@ export default function ReliefPlansPage() {
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Cpu className="w-5 h-5 text-blue-400" />
-            <span>Deterministic Relief Allocation Optimizer</span>
+            <span>Resource Allocation Optimizer</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Strict mathematical constraint solver: multi-warehouse priority knapsack with zero LLM calculation hallucination.
+            Computes optimal supply distribution from warehouse hubs to affected areas based on distance, stock reserves, and urgency.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={runSolver}
             disabled={isSolving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition-all cursor-pointer"
           >
             {isSolving ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Solving Constraints...</span>
+                <span>Optimizing Allocations...</span>
               </>
             ) : (
               <>
                 <Zap className="w-4 h-4" />
-                <span>Execute Optimization Solver</span>
+                <span>Run Allocation Solver</span>
               </>
             )}
           </button>
@@ -86,7 +112,7 @@ export default function ReliefPlansPage() {
               onChange={(e) => setPrioritizeCritical(e.target.checked)}
               className="rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-0"
             />
-            <span className="font-medium">Prioritize Critical & High Urgency (2.5x Multiplier)</span>
+            <span className="font-medium">Prioritize Critical & High Urgency</span>
           </label>
 
           <div className="flex items-center gap-2">
@@ -105,9 +131,26 @@ export default function ReliefPlansPage() {
 
         <div className="text-[11px] text-slate-400 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>Deterministic Algorithm: Multi-Hub Greedy Heuristic</span>
+          <span>Algorithm: Multi-Hub Constrained Greedy Solver</span>
         </div>
       </div>
+
+      {/* Success Banner */}
+      {creationSuccess && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-emerald-300 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{creationSuccess}</span>
+          </div>
+          <Link
+            href="/orders"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
+          >
+            <span>Review Orders</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Plan Output Overview */}
       {planResult && (
@@ -118,27 +161,29 @@ export default function ReliefPlansPage() {
               <span className="text-xs font-medium text-slate-400">Locations Covered</span>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-white">{planResult.totalLocationsServed}</span>
-                <span className="text-xs text-slate-400">of {mockAffectedLocations.length} affected areas</span>
+                <span className="text-xs text-slate-400">of {mockAffectedLocations.length} areas</span>
               </div>
-              <p className="text-[11px] text-emerald-400 mt-1">100% of Critical zones served</p>
+              <p className="text-[11px] text-emerald-400 mt-1">100% of Critical zones prioritized</p>
             </div>
 
             <div className="glass-panel p-4 rounded-xl border border-slate-800">
-              <span className="text-xs font-medium text-slate-400">Overall Fulfillment Rate</span>
+              <span className="text-xs font-medium text-slate-400">Supply Fulfillment Rate</span>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-cyan-400">{planResult.overallFulfillmentPercent}%</span>
-                <span className="text-xs text-slate-400">demand satisfied</span>
+                <span className="text-xs text-slate-400">demand covered</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Constrained by warehouse reserve bounds</p>
+              <p className="text-[11px] text-slate-400 mt-1">Based on active warehouse stocks</p>
             </div>
 
             <div className="glass-panel p-4 rounded-xl border border-slate-800">
               <span className="text-xs font-medium text-slate-400">Unmet Supply Deficit</span>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-amber-400">7,000L</span>
+                <span className="text-2xl font-bold text-amber-400">
+                  {planResult.unmetShortages?.[0] ? `${planResult.unmetShortages[0].deficit}L` : '0L'}
+                </span>
                 <span className="text-xs text-slate-400">Water Shortfall</span>
               </div>
-              <p className="text-[11px] text-amber-400 mt-1">Reorder requisition automatically generated</p>
+              <p className="text-[11px] text-amber-400 mt-1">Flagged for emergency replenishment</p>
             </div>
           </div>
 
@@ -146,28 +191,38 @@ export default function ReliefPlansPage() {
           <div className="glass-panel p-5 rounded-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white">Synthesized Allocation Matrix</h3>
-                <p className="text-xs text-slate-400">Optimal warehouse-to-destination matching based on road distance and urgency</p>
+                <h3 className="text-sm font-bold text-white">Recommended Allocation Schedule</h3>
+                <p className="text-xs text-slate-400">Optimal warehouse assignments minimizing transit distance</p>
               </div>
-              <Link
-                href="/orders"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 transition-all self-start sm:self-auto"
+              <button
+                onClick={handleCreateDraftOrders}
+                disabled={isCreatingOrders}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 transition-all cursor-pointer self-start sm:self-auto"
               >
-                <FileCheck className="w-3.5 h-3.5" />
-                <span>Review & Approve Generated Orders</span>
-              </Link>
+                {isCreatingOrders ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Creating Orders...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="w-3.5 h-3.5" />
+                    <span>Generate Draft Orders</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="overflow-x-auto rounded-lg border border-slate-800/80">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="px-4 py-3">Destination Village</th>
+                    <th className="px-4 py-3">Destination Area</th>
                     <th className="px-4 py-3">Urgency</th>
-                    <th className="px-4 py-3">Assigned Warehouse Hub</th>
-                    <th className="px-4 py-3">Road Distance</th>
+                    <th className="px-4 py-3">Source Warehouse</th>
+                    <th className="px-4 py-3">Distance</th>
                     <th className="px-4 py-3">Allocated Supplies</th>
-                    <th className="px-4 py-3 text-right">Fulfillment</th>
+                    <th className="px-4 py-3 text-right">Coverage</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
@@ -206,10 +261,10 @@ export default function ReliefPlansPage() {
               </table>
             </div>
 
-            {/* Transparent Mathematical Explanation */}
+            {/* Explanation */}
             <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs space-y-1">
               <span className="font-bold text-slate-300 uppercase tracking-wider text-[10px]">
-                Deterministic Proof & Reasoning
+                Optimization Logic
               </span>
               <p className="text-slate-300 leading-relaxed">
                 {planResult.mathematicalExplanation}

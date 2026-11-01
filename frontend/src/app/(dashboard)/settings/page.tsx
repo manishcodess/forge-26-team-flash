@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Database,
@@ -9,59 +9,117 @@ import {
   Key,
   CheckCircle2,
   AlertTriangle,
-  RotateCcw,
+  Server,
+  RefreshCw,
+  Cpu,
   Layers,
-  Shield,
-  Server
+  Terminal
 } from 'lucide-react';
+import { api, HealthResponse } from '@/lib/api';
 
 export default function SettingsPage() {
-  const [simulationActive, setSimulationActive] = useState<boolean>(true);
-  const [activeScenario, setActiveScenario] = useState<string>('BIHAR_MONSOON_DELUGE');
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fetchHealth = () => {
+    setLoading(true);
+    api
+      .checkHealth()
+      .then((data) => {
+        setHealth(data);
+      })
+      .catch(() => {
+        setHealth(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchHealth();
+  }, []);
 
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Top Header */}
-      <div>
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Settings className="w-5 h-5 text-slate-400" />
-          <span>System Architecture & Simulation Configuration</span>
-        </h2>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Verify connected cloud infrastructure, meteorological APIs, and disaster scenario injection parameters.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Settings className="w-5 h-5 text-slate-400" />
+            <span>System Status & Environment</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time status of backend services, database storage, external APIs, and deployment setup.
+          </p>
+        </div>
+        <button
+          onClick={fetchHealth}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition-all cursor-pointer self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>Check Status</span>
+        </button>
       </div>
 
       {/* Connectivity & Service Status */}
-      <div className="glass-panel p-5 rounded-xl space-y-4">
+      <div className="glass-panel p-5 rounded-xl space-y-4 border border-slate-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Server className="w-4 h-4 text-cyan-400" />
-          <span>Infrastructure & Provider Health</span>
+          <span>Services & Infrastructure Health</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          {/* Neon DB */}
+          {/* Backend API */}
+          <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Server className="w-4 h-4 text-blue-400" />
+              <div>
+                <div className="font-semibold text-white">Express Backend Gateway</div>
+                <div className="text-[11px] text-slate-400">
+                  {health ? `Uptime: ${health.uptimeSeconds || 0}s` : 'Port 5000'}
+                </div>
+              </div>
+            </div>
+            <span
+              className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+                health
+                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                  : 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3" />
+              <span>{health ? 'ONLINE' : 'LOCAL DEMO'}</span>
+            </span>
+          </div>
+
+          {/* Database */}
           <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Database className="w-4 h-4 text-emerald-400" />
               <div>
-                <div className="font-semibold text-white">PostgreSQL / Neon Cloud</div>
-                <div className="text-[11px] text-slate-400">Drizzle ORM Connection Pool</div>
+                <div className="font-semibold text-white">Data Store Mode</div>
+                <div className="text-[11px] text-slate-400">
+                  {health?.postgresConnected
+                    ? 'PostgreSQL (Neon Cloud)'
+                    : 'Pre-seeded In-Memory Store'}
+                </div>
               </div>
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
               <CheckCircle2 className="w-3 h-3" />
-              <span>ONLINE</span>
+              <span>ACTIVE</span>
             </span>
           </div>
 
-          {/* Open-Meteo */}
+          {/* Weather API */}
           <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CloudRain className="w-4 h-4 text-cyan-400" />
               <div>
-                <div className="font-semibold text-white">Open-Meteo Weather API</div>
-                <div className="text-[11px] text-slate-400">Real-time precipitation & wind</div>
+                <div className="font-semibold text-white">Open-Meteo Weather Service</div>
+                <div className="text-[11px] text-slate-400">Precipitation & flood risk model</div>
               </div>
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
@@ -70,96 +128,53 @@ export default function SettingsPage() {
             </span>
           </div>
 
-          {/* OSRM Routing */}
-          <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Route className="w-4 h-4 text-blue-400" />
-              <div>
-                <div className="font-semibold text-white">OSRM Routing Engine</div>
-                <div className="text-[11px] text-slate-400">Distance, geometry & ETA engine</div>
-              </div>
-            </div>
-            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>STANDBY</span>
-            </span>
-          </div>
-
-          {/* Gemini API */}
+          {/* AI Engine */}
           <div className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Key className="w-4 h-4 text-amber-400" />
               <div>
-                <div className="font-semibold text-white">Gemini 2.5 Pro Copilot</div>
-                <div className="text-[11px] text-slate-400">Function calling & tool registry</div>
+                <div className="font-semibold text-white">AI Engine</div>
+                <div className="text-[11px] text-slate-400">
+                  {health?.aiModel || 'Gemini Flash / Heuristic Solver'}
+                </div>
               </div>
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
               <CheckCircle2 className="w-3 h-3" />
-              <span>CONFIGURED</span>
+              <span>READY</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Emergency Simulation Scenario Controls */}
-      <div className="glass-panel p-5 rounded-xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Layers className="w-4 h-4 text-amber-400" />
-            <span>Emergency Drill & Scenario Injection</span>
-          </h3>
-          <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold uppercase">
-            DEMO MODE READY
-          </span>
-        </div>
+      {/* Deployment & Environment Setup Guide */}
+      <div className="glass-panel p-5 rounded-xl space-y-4 border border-slate-800">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-cyan-400" />
+          <span>Environment & Quick Deployment Guide</span>
+        </h3>
 
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Inject predetermined crisis conditions to validate deterministic allocation, route hazard warnings, and warehouse reserve thresholds without requiring live flood events.
-        </p>
+        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
+          <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1">
+            <div className="font-semibold text-white">Backend Environment (.env):</div>
+            <p className="text-slate-400 text-[11px]">
+              Set <code className="text-cyan-300">PORT=5000</code> and optionally <code className="text-cyan-300">GEMINI_API_KEY</code> for Google Gemini. If PostgreSQL is not provided, the backend automatically uses its robust in-memory database pre-loaded with Bihar flood scenarios.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          {[
-            {
-              id: 'BIHAR_MONSOON_DELUGE',
-              title: 'Catastrophic Kosi Deluge',
-              desc: '168mm rainfall, 3 breached embankments, critical road inundations in Supaul & Darbhanga.',
-            },
-            {
-              id: 'FLASH_CLOUDBURST',
-              title: 'Localized Flash Inundation',
-              desc: 'High-intensity cloudburst over Mithila belt; road culverts compromised.',
-            },
-            {
-              id: 'BASELINE_MONITORING',
-              title: 'Baseline Readiness Drill',
-              desc: 'Standard monsoon baseline; all highway corridors open and navigable.',
-            },
-          ].map((scen) => (
-            <div
-              key={scen.id}
-              onClick={() => setActiveScenario(scen.id)}
-              className={`p-3.5 rounded-lg border cursor-pointer transition-all ${
-                activeScenario === scen.id
-                  ? 'bg-blue-600/15 border-blue-500 text-white'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-              }`}
-            >
-              <div className="font-bold text-xs text-white mb-1">{scen.title}</div>
-              <p className="text-[11px] leading-relaxed text-slate-400">{scen.desc}</p>
-            </div>
-          ))}
-        </div>
+          <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1">
+            <div className="font-semibold text-white">Frontend Environment (.env.local):</div>
+            <p className="text-slate-400 text-[11px]">
+              Set <code className="text-cyan-300">NEXT_PUBLIC_API_URL=http://localhost:5000/api</code> for local development or point to your deployed backend URL.
+            </p>
+          </div>
 
-        <div className="pt-2 flex items-center justify-between border-t border-slate-800 text-xs">
-          <span className="text-slate-400">Active Scenario: <strong className="text-cyan-400">{activeScenario}</strong></span>
-          <button
-            onClick={() => alert('Simulated emergency database re-seeded successfully!')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo Seed State</span>
-          </button>
+          <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800 space-y-1">
+            <div className="font-semibold text-white">One-Click Production Deployment:</div>
+            <p className="text-slate-400 text-[11px]">
+              Deploy frontend to <strong>Vercel</strong> by connecting the frontend directory. Deploy backend to <strong>Render</strong> or <strong>Railway</strong> using <code className="text-cyan-300">npm run build && npm start</code>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
