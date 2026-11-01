@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   MapPin,
@@ -9,7 +9,9 @@ import {
   Route,
   Navigation,
   ArrowRight,
-  Truck
+  Truck,
+  CheckCircle2,
+  Users
 } from 'lucide-react';
 import { mockWarehouses, mockAffectedLocations, mockOrders } from '@/lib/mockData';
 import { api } from '@/lib/api';
@@ -50,6 +52,10 @@ export default function MapPage() {
     };
   }, []);
 
+  const handleSelectLocation = useCallback((id: string) => {
+    setSelectedLocationId((prev) => (prev === id ? null : id));
+  }, []);
+
   const selectedLoc = locations.find((l) => l.id === selectedLocationId);
 
   return (
@@ -62,14 +68,14 @@ export default function MapPage() {
             <span>Relief Map & Route Feasibility</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Geographic overview of staging warehouses, affected settlements, and active transit corridors.
+            Interactive GIS view of supply warehouses, flood-affected areas, and transport corridors in Bihar.
           </p>
         </div>
 
         {/* Hazard Note */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span>Caution: Red corridors indicate flooded or submerged road sections.</span>
+          <span>Notice: Red dashed lines show flooded corridors requiring boats or 4x4 convoys.</span>
         </div>
       </div>
 
@@ -82,7 +88,7 @@ export default function MapPage() {
             affectedLocations={locations}
             orders={orders}
             selectedLocationId={selectedLocationId}
-            onSelectLocation={(id) => setSelectedLocationId(id)}
+            onSelectLocation={handleSelectLocation}
           />
         </div>
 
@@ -101,7 +107,8 @@ export default function MapPage() {
                 return (
                   <div
                     key={ord.id}
-                    className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5 text-xs"
+                    onClick={() => handleSelectLocation(ord.destinationLocationId)}
+                    className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 space-y-1.5 text-xs cursor-pointer transition-all"
                   >
                     <div className="flex items-center justify-between font-mono">
                       <span className="font-bold text-white">{ord.orderNumber}</span>
@@ -112,14 +119,14 @@ export default function MapPage() {
                             : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                         }`}
                       >
-                        {isHazard ? 'SUBMERGED' : 'VERIFIED'}
+                        {isHazard ? 'FLOOD HAZARD' : 'OPEN ROUTE'}
                       </span>
                     </div>
 
                     <div className="text-[11px] text-slate-400">
                       <span>{ord.warehouseName.split(' ')[0]} Hub</span>
                       <span className="text-slate-500 mx-1">➔</span>
-                      <span className="text-slate-200">{ord.destinationLocationName}</span>
+                      <span className="text-slate-200 font-medium">{ord.destinationLocationName}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1 border-t border-slate-800/60">
@@ -133,11 +140,11 @@ export default function MapPage() {
           </div>
 
           {/* Selected Location Card */}
-          {selectedLoc && (
-            <div className="glass-panel p-4 rounded-xl space-y-3 border border-blue-500/40">
+          {selectedLoc ? (
+            <div className="glass-panel p-4 rounded-xl space-y-3 border border-blue-500/50 shadow-lg shadow-blue-500/10">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
-                  Inspected Zone
+                  Selected Location
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">
                   {selectedLoc.urgencyLevel}
@@ -149,7 +156,7 @@ export default function MapPage() {
                 <p className="text-xs text-slate-400">{selectedLoc.district} District</p>
               </div>
 
-              <div className="space-y-1.5 text-xs text-slate-300 pt-1">
+              <div className="space-y-1.5 text-xs text-slate-300 pt-1 border-t border-slate-800">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Affected Population:</span>
                   <span className="font-bold text-white">{selectedLoc.populationAffected.toLocaleString()}</span>
@@ -167,6 +174,10 @@ export default function MapPage() {
                   <span className="font-semibold text-rose-400">{selectedLoc.accessRoadStatus.replace('_', ' ')}</span>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-dashed border-slate-800 text-center text-xs text-slate-500">
+              Click any warehouse or village marker on the map to inspect details.
             </div>
           )}
         </div>

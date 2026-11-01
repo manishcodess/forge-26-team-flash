@@ -105,3 +105,9 @@ body {
 .leaflet-popup-tip {
   background: #0f172a !important;
 }
+
+/* Fix Leaflet DivIcon default square box */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
